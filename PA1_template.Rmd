@@ -1,25 +1,188 @@
 ---
 title: "Reproducible Research: Peer Assessment 1"
-output: 
-  html_document:
-    keep_md: true
+output: html_document
+keep_md: true
 ---
 
 
-## Loading and preprocessing the data
+# Loading and preprocessing the data
+
+```{r, echo=TRUE}
+s='activity\\activity.csv'
+dat=read.csv(s)
+print(summary(dat))
+```
+
+
+# What is mean total number of steps taken per day?
+## 1. Calculate total number of steps taken per day
+```{r, echo=TRUE}
+datPerDay=split(dat,dat$date)
+lDay=length(datPerDay)
+TotStepPerDay=vector()
+for(i in 1:lDay){
+  TotStepPerDay[i]=sum(datPerDay[[i]]$steps)
+}
+print(TotStepPerDay)
+
+```
+
+## 2. Make a histogram of the total number of steps taken each day
+```{r, echo=TRUE}
+
+hist(TotStepPerDay)
+
+```
+
+
+## 3. Calculate and report the mean and median of the total number of steps taken per day
+```{r, echo=TRUE}
+
+MeanTotStepPerDay=mean(TotStepPerDay,na.rm=TRUE)
+MedianTotStepPerDay=median(TotStepPerDay,na.rm=TRUE)
+print(c('Mean of total number of steps taken per day =',MeanTotStepPerDay))
+print(c('Median of total number of steps taken per day =',MedianTotStepPerDay))
+
+```
+
+# What is the average daily activity pattern?
+## 1. Make a time series plot of the 5-minute interval and the average number of steps taken, averaged across all days
+```{r, echo=TRUE}
+StepInterval=data.frame()
+
+for(i in 1:lDay){
+  StepInterval<-rbind(StepInterval,                     as.numeric(datPerDay[[i]]$steps))
+}
+StepInterval=t(StepInterval)
+DayMean=rowMeans(StepInterval,na.rm =TRUE)
+DayMean=as.numeric(DayMean)
+
+ print(str(DayMean))
+ t=(1:length(DayMean))*5
+ plot(t,DayMean,type='l',xlab='Time (min)',
+      ylab='Average Step Number')
+
+```
+
+## 2.Which 5-minute interval, on average across all the days in the dataset, contains the maximum number of steps?
+
+```{r, echo=TRUE}
+n=which(DayMean==max(DayMean))
+s1=sprintf('%dth interval contains maximum step number',n)
+s2=sprintf('t= %d min',t[n])
+print(s1)
+print(s2)
+
+```
+
+# Imputing missing values
+## 1.Calculate and report the total number of missing values in the dataset (i.e. the total number of rows with NAs)
+```{r, echo=TRUE}
+n=which(is.na(dat$steps))
+m=length(n)
+s1=sprintf('Total number of missing values in the dataset= %d',m)
+print(s1)
+```
+
+## 2.Devise a strategy for filling in all of the missing values in the dataset by mean for that 5-minute interval.
+```{r, echo=TRUE}
+datMod<-dat
+for(i in 1:m){
+  k=n[i]%%288
+  if(k==0) {
+    k=288
+    }
+datMod$steps[n[i]]=DayMean[k]
+}
+
+```
+
+
+## 3. Create a new dataset that is equal to the original dataset but with the missing data filled in.
+dat has been updated in prevous step. 
+
+## 4.Make a histogram of the total number of steps taken each day.
+
+```{r,echo=TRUE}
+
+datPerDayMod=split(datMod,datMod$date)
+lDay=length(datPerDayMod)
+TotStepPerDayMod=vector()
+for(i in 1:lDay){
+  TotStepPerDayMod[i]=sum(datPerDayMod[[i]]$steps)
+}
+print(TotStepPerDayMod)
+hist(TotStepPerDayMod)
+
+
+```
+
+## 4.Report the mean and median total number of steps taken per day. 
+
+```{r,echo=TRUE}
+MeanTotStepPerDayMod=mean(TotStepPerDayMod,na.rm=TRUE)
+MedianTotStepPerDayMod=median(TotStepPerDayMod,na.rm=TRUE)
+print(c('After imputing missing values, Mean of total number of steps taken per day =',MeanTotStepPerDayMod))
+print(c('After imputing missing values,Median of total number of steps taken per day =',MedianTotStepPerDayMod))
+
+
+```
+##Do these values differ from the estimates from the first part of the assignment? 
+Not much. 
+
+##What is the impact of imputing missing data on the estimates of the total daily number of steps?
+There is a very little impact from missing data on estimating total daily number of steps. Beause the missing is imputed by the mean values fro available data, which assuimg missing data is very similar to data available.
+
+
+# Are there differences in activity patterns between weekdays and weekends?
+
+## 1.Create a new factor variable in the dataset with two levels - "weekday" and "weekend" indicating whether a given date is a weekday or weekend day.
+```{r}
+for(i in 1:lDay){
+  a<-names(datPerDayMod[i])
+  b<-as.Date(a)
+  datPerDayMod$WeekD[i]<-weekdays(b)
+}
+```
+
+
+## 2.Make a panel plot containing a time series plot (i.e. type = "l") of the 5-minute interval (x-axis) and the average number of steps taken, averaged across all weekday days or weekend days (y-axis). 
+```{r, echo=TRUE}
+StepIntervalModWKD=data.frame()
+StepIntervalModWED=data.frame()
+for(i in 1:lDay){
+  if(datPerDayMod$WeekD[i]=='Saturday' |         
+     datPerDayMod$WeekD[i]=='Sunday'){
+     StepIntervalModWKD<-rbind(StepIntervalModWKD,           as.numeric(datPerDayMod[[i]]$steps))
+  }
+  else{
+    StepIntervalModWED<-rbind(StepIntervalModWED,           as.numeric(datPerDayMod[[i]]$steps))
+  }
+  
+}
+StepIntervalModWKD=t(StepIntervalModWKD)
+StepIntervalModWED=t(StepIntervalModWED)
+WKDayMean=rowMeans(StepIntervalModWKD,na.rm =TRUE)
+WKDayMean=as.numeric(WKDayMean)
+WEDayMean=rowMeans(StepIntervalModWED,na.rm =TRUE)
+WEDayMean=as.numeric(WEDayMean)
+ 
+#  print(str(DayMean))
+  t=(1:length(WKDayMean))*5
+  par(mfrow=c(2,1))
+  plot(t,WKDayMean,type='l',xlab='',
+       ylab='Average Step Number',main='WeekDay',ylim=c(0,250))
+  plot(t,WEDayMean,type='l',xlab='Time (min)',
+       ylab='Average Step Number',main='Weekend',ylim=c(0,250))
+
+```
+
+
+There is a significant difference betwen weekday and weekend. Especially the time around from 10 am to 8 pm, Weekday has a much higher steps compared to weekend.
 
 
 
-## What is mean total number of steps taken per day?
 
 
 
-## What is the average daily activity pattern?
 
-
-
-## Imputing missing values
-
-
-
-## Are there differences in activity patterns between weekdays and weekends?
